@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goalie Load Test</title>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="./style.css">
+
+    
+    <script src="http://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="//d3js.org/d3.v5.min.js"></script>
+</head>
+
+<body>
+
+    <div class="ui-widget">
+        <label for="goalies">Goalie: </label>
+        <input id="goalies">
+    </div>
+
+    <div class="img-overlay-wrap">
+
+		<img src="./assets/rink_new.png">
+		<svg xmlns="http://www.w3.org/2000/svg"> </svg>
+
+	</div>
+
+    <script>
+
+        $(document).ready(function () {
+
+            // ***********************
+            // **** Set up svg *******
+            //************************
+
+            var svgwidth = d3.select('img').node().getBoundingClientRect().width;
+            var svgheight = (svgwidth*85/200);
+            
+            var svg = d3.select("svg")
+                .attr("width",svgwidth)
+                .attr("height",svgheight),
+                margin = {
+                    top: 20,
+                    right: 50,
+                    bottom: 20,
+                    left: 50
+                }
+
+            var xpos = 0; //starting xpos and ypos at 1 so the stroke will show when we make the grid below
+		    var ypos = 0;
+		    var dxdy = 5;
+		    var fracDim = dxdy/200;
+		    var boxPageDim = fracDim*svgwidth;
+              //width = +svg.attr("width") - margin.left - margin.right,
+              //height = +svg.attr("height") - margin.top - margin.bottom,
+        
+            var colormap;
+            var scale;
+
+            function makeDemColors() {
+            
+            }
+
+            // ***************************
+            // *** Sorting goalie info ***
+            // ***************************
+
+            var goalieDict; 
+            var autoComplete = [];
+
+            $.getJSON("./data/goalies.json", function(json) {
+                //console.log(json);
+                goalieDict = json;
+
+                //autoComplete = [Object.keys(goalieDict)]
+
+                Object.entries(goalieDict).forEach(([key, value]) => {
+                    autoComplete.push(key) // + ', ' + value)
+                });
+
+            });
+
+            $( "#goalies" ).autocomplete({
+                source: autoComplete,
+                minLength: 2,
+                select: function( event, ui ) {
+
+                test = ui.item.value
+                console.log(goalieDict[ui.item.value])
+
+                goalieID = goalieDict[ui.item.value];
+                returnJSON(goalieID);
+
+                // For debugging/testing
+                //testFunction();
+                }
+            });
+
+            function returnJSON(goalieID) {
+                d3.json(`http://127.0.0.1:5000/api/v1.0/goalies/${goalieID}`).then(function (data) {
+
+                    // Make sure data are number types and not strings
+                    data = data.map(x=>+x)
+
+                    // Set up colormap scale
+                    colormap = d3.interpolateReds;
+		            scale = d3.scaleSequential(colormap);
+                    scale.domain([d3.min(data),d3.max(data)]);
+                    
+                    var rects = svg.selectAll("rect.play-points")
+                        .data(data)
+                        .join('rect')
+                        .attr("x", (d, i) => (i%(200/dxdy))*boxPageDim)
+                        .attr("y", (d, i) => (Math.floor(i/(200/dxdy)))*boxPageDim)
+                        .attr('width',boxPageDim)
+                        .attr('height',boxPageDim);
+
+                    rects.transition()
+                        .duration(500)
+                        .attr('fill', d => scale(Number(d)))
+                        .attr("opacity",0.5)
+                        .attr('class','play-points')
+                
+                });
+
+            }
+
+            // *************************
+            // ****** Debugging ********
+            // *************************
+
+
+            function testFunction() {
+                d3.json('http://127.0.0.1:5000/api/v1.0/goalies/test').then(function (data) {
+                    console.log(data[0])
+                });
+            };
+        });
+
+    </script>
+
+</body>
+</html>
