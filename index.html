@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Goalie Load Test</title>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./static/style.css">
 
     
     <script src="http://code.jquery.com/jquery-3.4.1.min.js"></script>
@@ -17,15 +17,36 @@
 
     <div class="ui-widget">
         <label for="goalies">Goalie: </label>
-        <input id="goalies">
+        <input id="goalies" placeholder="Goalie Name">
+    </div>
+
+    <div class='goalieInfo'>
+		
+
+	</div>
+
+    <div class='tooltip'></div>
+
+    <div class='topplot'>
+
+        <img class='goaliePlot' src=''>
+
+    </div>
+
+    <div class='plot'>
+
+        <img src='./static/images/allTeams.png' alt='all teams plot'>
+
     </div>
 
     <div class="img-overlay-wrap">
 
-		<img src="./assets/rink_new.png">
+		<img class='rinkImg' src="./assets/rink_new.png">
 		<svg xmlns="http://www.w3.org/2000/svg"> </svg>
 
-	</div>
+    </div>
+    
+
 
     <script>
 
@@ -35,7 +56,7 @@
             // **** Set up svg *******
             //************************
 
-            var svgwidth = d3.select('img').node().getBoundingClientRect().width;
+            var svgwidth = d3.select('.rinkImg').node().getBoundingClientRect().width;
             var svgheight = (svgwidth*85/200);
             
             var svg = d3.select("svg")
@@ -58,10 +79,14 @@
         
             var colormap;
             var scale;
+            var firstRun = true;
 
-            function makeDemColors() {
-            
-            }
+            var tooltip = d3.select(".tooltip")
+                            .style("opacity", 0);
+                            
+            var infoBox = d3.select(".goalieInfo")
+                            .style("opacity", 0);
+
 
             // ***************************
             // *** Sorting goalie info ***
@@ -84,7 +109,7 @@
 
             $( "#goalies" ).autocomplete({
                 source: autoComplete,
-                minLength: 2,
+                minLength: 1,
                 select: function( event, ui ) {
 
                 test = ui.item.value
@@ -99,15 +124,44 @@
             });
 
             function returnJSON(goalieID) {
+                d3.select('.goaliePlot').attr('src',"./static/images/" + goalieID + ".png")
+
+                //document.getElementsByClassName('goaliePlot').setAttribute("src",
+                //                    "./static/images/" + goalieID + ".png")
+
                 d3.json(`http://127.0.0.1:5000/api/v1.0/goalies/${goalieID}`).then(function (data) {
 
                     // Make sure data are number types and not strings
-                    data = data.map(x=>+x)
+                    //data = data.map(x=>+x)
+
+                    //console.log(data)
+                    
+                    // Pull the goalie overall data riding along with the json
+                    let numSquares = (200/dxdy)*(85/dxdy)
+                    statList = data[numSquares]
+                    delete data[numSquares]
 
                     // Set up colormap scale
-                    colormap = d3.interpolateReds;
-		            scale = d3.scaleSequential(colormap);
-                    scale.domain([d3.min(data),d3.max(data)]);
+                    
+                    // Reverse the input domain so the color scale is reversed
+                    colormap = d3.interpolateRdBu;
+                    scale = d3.scaleDiverging(colormap);
+                    scale.domain([5,0,-5])
+
+                    // Create our returned HTML data for the goalie info box
+                    infoBox.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    infoBox.html(function () {
+                            return "Allowed Goals P60: " + statList[0] + "<br> \
+                                    Expected Goals P60: " + statList[1];
+                        });
+
+                    /*if (Math.abs(d3.min(data)) > Math.abs(d3.max(data))) {
+                        scale.domain([d3.min(data),0,Math.abs(d3.min(data))]);
+                    } else {
+                        scale.domain([-1*(d3.max(data)),0,Math.abs(d3.max(data))]);
+                    }*/
                     
                     var rects = svg.selectAll("rect.play-points")
                         .data(data)
@@ -120,12 +174,95 @@
                     rects.transition()
                         .duration(500)
                         .attr('fill', d => scale(Number(d)))
-                        .attr("opacity",0.5)
-                        .attr('class','play-points')
+                        .attr("opacity",0.8)
+                        .attr('class','play-points');
+
+                    if (firstRun) {
+                        let list = [];
+                        let txt_list = [];
+
+                        max = scale.domain()[2]
+                        min = scale.domain()[0]
+
+                        let diff = max - min
+                        numSteps = 11
+                        let inc = diff/numSteps;
+
+                        for (var i = 0; i < numSteps; i++) {
+
+                            list.push(Math.round((i*inc + scale.domain()[0])*100)/100)
+                        }
+                        
+                        svg.selectAll("rect.cbar")
+                            .data(list)
+                            .join('rect')
+                            .attr('x', (d,i) => i*boxPageDim+(svgwidth/2 - (list.length/2)*boxPageDim))
+                            .attr('y', boxPageDim*2.5)
+                            .attr('width',boxPageDim)
+                            .attr('height',boxPageDim)
+                            .transition()
+                            .duration(500)
+                            .attr('fill', d => scale(d))
+                            .attr('stroke','black')
+                            .attr('class','cbar')
+
+                            svg.selectAll('text.cbar.diff')
+                            .data(['Worse than Expected','Better than Expected'])
+                            .join('text')
+                            .attr('x', (d,i) => i*boxPageDim*8+((svgwidth/2 - (list.length/5.5)*boxPageDim*2)))
+                            .attr('y', boxPageDim * 2.4)
+                            .text(d => d)
+                            .attr('text-anchor','middle')
+                            .attr('class','cbar diff')
+                            .attr('font-size',12);
+                    }
+
+                    firstRun = false;
+
+                    rects.on("mouseover", 
+						function(d,i) {
+							tooltip.transition()
+							   .duration(200)
+							   .style("opacity", .9);
+							tooltip.html(function() {
+								
+								let x = i%(200/dxdy)
+								let y = Math.floor(i/(200/dxdy))
+								yFromGoal = Math.abs((y+0.5)*dxdy-42.5)
+								xFromGoal = Math.abs((x+0.5)*dxdy-189)
+
+								distanceFromGoal = Math.sqrt(Math.pow(xFromGoal,2)+Math.pow(yFromGoal,2))
+                                angleFromGoal = Math.asin(yFromGoal/distanceFromGoal)*180/Math.PI
+                                
+                                return '<b>Allowed: </b>' + d.toFixed(1) + ' Goals vs Expected<br>' + '<b>Distance:</b> ' + Math.round(distanceFromGoal) + ' ft <br> \
+                                            <b>Angle: </b>' + Math.round(angleFromGoal) + ' deg'
+
+								//return Math.round(angleFromGoal*180/Math.PI)
+
+							})
+							.style("left", (d3.event.pageX - 200) + "px")
+               				.style("top", (d3.event.pageY - 75) + "px");
+
+               				d3.select(this)
+				                .attr("stroke-width", 2)
+				                .attr("stroke",'black')
+				                .attr("opacity",1)
+						})
+						.on("mouseout", 
+							function() {
+	          					tooltip.transition()
+	               					.duration(500)
+	               					.style("opacity", 0);
+
+	               				d3.select(this)
+				                	.attr("stroke-width", 0)
+				                	.attr("opacity",0.8)
+	               			});
                 
                 });
 
             }
+
 
             // *************************
             // ****** Debugging ********

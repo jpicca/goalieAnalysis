@@ -16,15 +16,17 @@ CORS(app)
 # goalie info
 #################################################
 
-file = open('./data/goalies.json')
+file = open('./data/goalieTime.json')
 openedFile = file.read()
-goalieDict = json.loads(openedFile)
+goalieTime = json.loads(openedFile)
 
 #################################################
 # load dataframe
 #################################################
 
-df = pd.read_csv('./data/playLibrary_v2.csv')
+#df = pd.read_csv('./data/playLibrary_v2.csv')
+df = pd.read_csv('./data/dataToFilter.csv')
+df['x'] = df['x'].apply(lambda x: abs(x))
 
 @app.route("/")
 def welcome():
@@ -35,19 +37,39 @@ def welcome():
 @app.route("/api/v1.0/goalies/<goalieID>")
 def goalieAnalysis(goalieID):
     
-    goalieDF = df[df['goalie'] == int(goalieID)]
+    goalieDF = df[(df['goalie'] == int(goalieID))].reset_index(drop=True)
+    allowedDF = df[(df['goalie'] == int(goalieID)) & (df['target'] == 1)].reset_index(drop=True)
     
     # Create grid object
     G = createGrid()
-    totalGrid = np.zeros(G.tx.shape)
+    expectedGrid = np.zeros(G.tx.shape)
+    allowedGrid = np.zeros(G.tx.shape)
 
-    points = G.grid_points(goalieDF['x'], goalieDF['y'])  # Run the Gridder!
+    expectedPoints = G.grid_points(goalieDF['x'], goalieDF['y'])  # Run the Gridder!
+    allowedPoints = G.grid_points(allowedDF['x'], allowedDF['y']) # Run the Gridder!
 
     # Grid shot points for that game
-    for point in points:
-        totalGrid[point] += 1
+    #for point in points:
+    #    totalGrid[point] += 1
+
+    # Increment by the goal probability, instead of just by 1
+    for idx,point in enumerate(expectedPoints):
+        expectedGrid[point] += 1*goalieDF['goalProb'][idx]
+
+    for idx,point in enumerate(allowedPoints):
+        allowedGrid[point] += 1
+
+    # Calculate goals per 60 min
+
+    expectedP60 = np.round(np.sum(expectedGrid)/goalieTime[goalieID]['games'],2)
+    allowedP60 = np.round(np.sum(allowedGrid)/goalieTime[goalieID]['games'],2)
+
+    diffList = (expectedGrid-allowedGrid).flatten().tolist()
+    diffList.append([allowedP60,expectedP60])
     
-    return jsonify(totalGrid.flatten().tolist())
+    return jsonify(diffList)
+    
+    #return jsonify((expectedGrid-allowedGrid).flatten().tolist())
 
     #goalieJson = json.loads(goalieDF.to_json(orient='records'))
 
