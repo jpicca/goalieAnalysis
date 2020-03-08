@@ -4,6 +4,7 @@ import pandas as pd
 import json
 from gridder import Gridder
 import numpy as np
+from scipy.ndimage import gaussian_filter
 
 
 #################################################
@@ -59,6 +60,8 @@ def goalieAnalysis(goalieID):
     for idx,point in enumerate(allowedPoints):
         allowedGrid[point] += 1
 
+    expectedGrid = gaussian_filter(expectedGrid,sigma=1)
+    allowedGrid = gaussian_filter(allowedGrid, sigma=1)
     # Calculate goals per 60 min
 
     expectedP60 = np.round(np.sum(expectedGrid)/goalieTime[goalieID]['games'],2)

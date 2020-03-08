@@ -28,15 +28,19 @@ body {
 }
 
 .tooltip {
-    position: fixed;
+    position: relative;
+    text-align: center;
     pointer-events: none;
     background-color: white;
-    z-index: 11;
+}
+
+.info {
+    position: fixed;
+    z-index: 10;
 }
 
 .goalieInfo {
-    position: fixed;
-    z-index: 10;
+    position: relative;
     background-color: white;
     font-size: 20px;
 }
@@ -55,3 +59,11 @@ body {
     z-index: 13;
     bottom: 0px;
 }
+
+@media only screen and (max-width: 800px) {
+    .plot img, .topplot img {
+      position: relative;
+      width: 80%;
+      right: 10%;
+    }
+  }

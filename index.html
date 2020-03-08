@@ -15,18 +15,22 @@
 
 <body>
 
-    <div class="ui-widget">
-        <label for="goalies">Goalie: </label>
-        <input id="goalies" placeholder="Goalie Name">
+    <div class='info'>
+        <div class="ui-widget">
+            <label for="goalies">Goalie: </label>
+            <input id="goalies" placeholder="Goalie Name">
+        </div>
+        <div class='goalieInfo'></div>
+        <div class='tooltip'></div>
     </div>
 
-    <div class='goalieInfo'>
-		
+    <div class="img-overlay-wrap">
 
-	</div>
+		<img class='rinkImg' src="./assets/rink_new.png">
+		<svg xmlns="http://www.w3.org/2000/svg"> </svg>
 
-    <div class='tooltip'></div>
-
+    </div>
+    
     <div class='topplot'>
 
         <img class='goaliePlot' src=''>
@@ -38,15 +42,6 @@
         <img src='./static/images/allTeams.png' alt='all teams plot'>
 
     </div>
-
-    <div class="img-overlay-wrap">
-
-		<img class='rinkImg' src="./assets/rink_new.png">
-		<svg xmlns="http://www.w3.org/2000/svg"> </svg>
-
-    </div>
-    
-
 
     <script>
 
@@ -146,7 +141,7 @@
                     // Reverse the input domain so the color scale is reversed
                     colormap = d3.interpolateRdBu;
                     scale = d3.scaleDiverging(colormap);
-                    scale.domain([5,0,-5])
+                    scale.domain([-1.5,0,1.5])
 
                     // Create our returned HTML data for the goalie info box
                     infoBox.transition()
@@ -234,14 +229,14 @@
 								distanceFromGoal = Math.sqrt(Math.pow(xFromGoal,2)+Math.pow(yFromGoal,2))
                                 angleFromGoal = Math.asin(yFromGoal/distanceFromGoal)*180/Math.PI
                                 
-                                return '<b>Allowed: </b>' + d.toFixed(1) + ' Goals vs Expected<br>' + '<b>Distance:</b> ' + Math.round(distanceFromGoal) + ' ft <br> \
+                                return '<u>Selected Grid</u>:<br> <b>Allowed: </b>' + -1*(d.toFixed(1)) + ' Goals vs Expected<br>' + '<b>Distance:</b> ' + Math.round(distanceFromGoal) + ' ft <br> \
                                             <b>Angle: </b>' + Math.round(angleFromGoal) + ' deg'
 
 								//return Math.round(angleFromGoal*180/Math.PI)
 
-							})
-							.style("left", (d3.event.pageX - 200) + "px")
-               				.style("top", (d3.event.pageY - 75) + "px");
+							});
+							//.style("left", (d3.event.pageX - 200) + "px")
+               				//.style("top", (d3.event.pageY - 75) + "px");
 
                				d3.select(this)
 				                .attr("stroke-width", 2)
