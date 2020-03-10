@@ -22,4 +22,4 @@ Begin to type a goalie's name in the input form and then choose a goalie from th
 
 [Live Version](http://www.joeypicca.info/FlaskApp/goalieAnalysis/)
 
-![Front End Example](https://github.com/jpicca/natGasPrediction/blob/master/Screenshot%202020-02-19%2016.33.34.png)
+![Front End Example](https://github.com/jpicca/goalieAnalysis/blob/master/screenshot.jpg)
