@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import math
 from joblib import load
+from datetime import datetime
 
 # Read dataset
 df = pd.read_csv('./data/playLibrary_v2.csv')
@@ -22,7 +23,11 @@ y = df['target']
 
 # Load scaler & model
 scaler = load('./models/scaler.bin')
-model = load('./models/gbGoalie_2March2020.joblib')
+
+today = datetime.now().strftime('%d%m%Y')
+model = load(f'./models/gbGoalie_{today}.joblib')
+
+print('Model and scaler loaded! Transforming features and making goal predictions...')
 
 # Scale features for modeling
 X_scaled = scaler.transform(X)
@@ -32,6 +37,8 @@ goalProb = np.round(model.predict_proba(X_scaled)[:,1],3)
 
 # Create a dataframe to save and use for gridding/plotting
 filtDF = df[['goalie','period','x','y','shotType','target']]
+
+print('Added new goal probs to dataframe -- saving to csv')
 
 # Add our predicted goals to filtDF
 filtDF.loc[:,'goalProb'] = goalProb
